@@ -17,6 +17,10 @@ variable "private_subnets_ids" {
   description = "Private Subnet IDs list for ECS Service)"
   type        = list(string)
 }
+variable "public_subnets_ids" {
+  description = "Public Subnet IDs list for ECS Service)"
+  type        = list(string)
+}
 
 variable "vpc_id" {
   description = "VPC ID where ECS Service will be deployed"

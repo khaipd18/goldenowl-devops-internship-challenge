@@ -107,6 +107,7 @@ module "ecs" {
   app_image           = "nginxdemos/hello:latest"
   app_port            = var.app_port
   private_subnets_ids = module.vpc.private_subnet_ids
+  public_subnets_ids  = module.vpc.public_subnet_ids
   vpc_id              = module.vpc.output_vpc_id
 }
 
