@@ -2,7 +2,7 @@ name: CI/CD for Golden Owl App
 
 on: 
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   workflow_dispatch: 
     inputs:
       custom_tag:
