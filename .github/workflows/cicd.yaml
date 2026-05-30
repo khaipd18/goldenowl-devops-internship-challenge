@@ -3,6 +3,9 @@ name: CI/CD for Golden Owl App
 on: 
   push:
     branches: [ "master" ]
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
   workflow_dispatch: 
     inputs:
       custom_tag:
