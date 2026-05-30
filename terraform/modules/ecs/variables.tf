@@ -1,7 +1,6 @@
 variable "cluster_name" {
   description = "Cluster name cho ECS Cluster"
   type        = string
-  default     = "devops-app-cluster"
 }
 
 variable "app_image" {

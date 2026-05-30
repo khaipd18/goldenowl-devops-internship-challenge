@@ -52,11 +52,11 @@ variable "allow_pull_principals" {
   default     = []
 }
 
-variable "cluster_name" {
+ault     = "goldenowl-devops-cluster"
+}variable "cluster_name" {
   description = "Cluster name for ECS Cluster"
   type        = string
-  default     = "goldenowl-devops-cluster"
-}
+  def
 
 variable "app_port" {
   description = "Port number where the app listens (e.g., 3000)"
