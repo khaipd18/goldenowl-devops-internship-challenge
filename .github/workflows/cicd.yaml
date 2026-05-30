@@ -1,0 +1,96 @@
+name: CI/CD for Golden Owl App
+
+on: 
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: 
+    inputs:
+      custom_tag:
+        description: 'Image tag to use for this build (optional, defaults to git sha)'
+        required: false
+        type: string
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: khaipd18-goldenowl-devops-repo      
+  ECS_CLUSTER: goldenowl-devops-cluster       
+  ECS_SERVICE: goldenowl-devops-cluster-service         
+  CONTAINER_NAME: goldenowl-app-container           
+  TASK_FAMILY: goldenowl-devops-cluster-task     
+
+permissions:
+  id-token: write   
+  contents: read    
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: src/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./src
+        run: npm ci
+
+      - name: Run Format Check
+        working-directory: ./src
+        run: npm run format:check || echo "Format warnings found."
+
+      - name: Run Linter (ESLint)
+        working-directory: ./src
+        run: npm run lint:check || echo "Linter warnings found."
+
+      - name: Run Unit Tests
+        working-directory: ./src
+        run: npm test
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::797226340543:role/github-actions-goldenowl-ci-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.event.inputs.custom_tag || github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download active task definition from AWS
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.TASK_FAMILY }} \
+            --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
