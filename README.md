@@ -1,45 +1,162 @@
-# Golden Owl DevOps Internship - Technical Test
-At Golden Owl, we believe in treating infrastructure as code and automating resource provisioning to the fullest extent possible. 
+# 🦉 Golden Owl DevOps Internship - Technical Test Solution
 
-In this technical test, we challenge you to create a robust CI build pipeline using GitHub Actions. You have the freedom to complete this test in your local environment.
+Welcome to my solution for the Golden Owl DevOps Internship technical test. This repository demonstrates a modern, secure, and automated Infrastructure as Code (IaC) approach combined with a robust CI/CD pipeline.
 
-## Your Mission 🌟
-Your mission, should you choose to accept it, is to craft a CI job that:
-1. Forks this repository to your personal GitHub account.
-2. Dockerizes a Node.js application.
-3. Establishes an automated CI/CD build process using GitHub Actions workflow and a container registry service such as DockerHub or Amazon Elastic Container Registry (ECR) or similar services.
-4. Initiates CI tests automatically when changes are pushed to the feature branch on GitHub.
-5. Utilizes GitHub Actions for Continuous Deployment (CD) to deploy the application to major cloud providers like AWS EC2, AWS ECS or Google Cloud (please submit the deployment link).
-## Nice to have 🎨
-We would be genuinely delighted if you could complement your submission with a `visual flow diagram`, illustrating the sequence of tasks you performed, including the implementation of a `load balancer` and `auto scaling` for the deployed application. This additional touch would greatly enhance our understanding and appreciation of your work.
+---
 
-Reference tools for creating visual flow diagrams:
-- https://www.drawio.com/
-- https://excalidraw.com/
-- https://www.eraser.io/
-  
-Including a visual representation of your workflow will provide valuable insights into your approach and make your submission stand out. Thank you for considering this enhancement! 
-## The Bigger Picture 🌏
-This test is designed to evaluate your ability to implement modern automated infrastructure practices while demonstrating a basic understanding of Docker containers. In your solution, we encourage you to prioritize readability, maintainability, and the principles of DevOps.
+## 🚀 Live Deployment
 
- ## Submission Guidelines 📬
-Your solution should be showcased in a public GitHub repository. We encourage you to commit early and often. We prefer to see a history of iterative progress rather than a single massive push. When you've completed the assignment, kindly share the URL of your repository with us.
+**Deployment Link (ALB):** `http://goldenowl-devops-cluster-alb-1516692012.ap-southeast-1.elb.amazonaws.com`
 
- ## Running the Node.js Application Locally  🏃‍♂️
- This is a Node.js application, and running it locally is straightforward:
-- Navigate to the `src` directory by executing `cd src`.
-- Install the project's dependencies listed in the package.json file by running `npm i`.
-- Execute `npm test` to run the application's tests.
-- Start the HTTP server with `npm start`.
+> **Note:** Please test the endpoint using `curl` or a web browser to see the JSON response.
 
-You can test it using the following command:
-  
-```shell
+---
+
+## 📐 Architecture & Visual Flow Diagram
+
+To meet and exceed the "Nice to have" requirements, I have designed a highly secure, production-ready AWS architecture.
+
+### Key Architectural Decisions
+
+- **Security by Design (Private Subnets):** The ECS Fargate tasks are entirely isolated in Private Subnets. They are not directly exposed to the internet.
+
+- **Application Load Balancer (ALB):** Placed in the Public Subnets, the ALB serves as the single point of entry, routing internet HTTP traffic securely to the ECS tasks.
+
+- **Optimized Networking (VPC Endpoints & NAT Gateway):**
+  - **VPC Endpoints (PrivateLink):** Used for ECR (API & DKR), S3, and CloudWatch Logs. This allows the private containers to pull images and push logs internally within the AWS network, maximizing security and minimizing data transfer costs.
+  - **NAT Gateway:** Maintained in the routing table for any external outbound internet requests that the application might need.
+
+- **Keyless Authentication (OIDC):** The CI/CD pipeline authenticates with AWS via OpenID Connect (OIDC). No long-lived AWS Access Keys are stored in GitHub Secrets, preventing potential credential leaks.
+
+---
+
+## 🛠 Tech Stack
+
+| Category | Technology |
+|---|---|
+| Application | Node.js |
+| Containerization | Docker |
+| Infrastructure as Code | Terraform |
+| Cloud Provider | Amazon Web Services (AWS) |
+| Compute | ECS (Fargate Serverless) |
+| Network | VPC, ALB, Security Groups, VPC Endpoints, NAT Gateway |
+| Storage & Registry | ECR |
+| IAM | OIDC Provider, Roles, Policies |
+| CI/CD | GitHub Actions |
+
+---
+
+## 📂 Repository Structure
+
+The repository separates the application source code from the infrastructure code for better maintainability.
+
+```
+.
+├── .github/workflows/    # CI/CD Pipeline configuration
+├── src/                  # Node.js Application source code
+├── terraform/            # Infrastructure as Code (IaC)
+│   ├── modules/          # Modularized Terraform configurations
+│   │   ├── ecr/
+│   │   ├── ecs/
+│   │   ├── github-oidc-role/
+│   │   ├── vpc/
+│   │   └── vpc-endpoints/
+│   ├── main.tf           # Terraform entry point
+│   ├── providers.tf      # AWS Provider configuration
+│   └── variables.tf      # Terraform variables
+├── Dockerfile            # Container definition
+├── GoldenOwl.drawio.png  # Architecture Diagram
+└── README.md
+```
+
+---
+
+## 🔄 CI/CD Pipeline Workflow
+
+The GitHub Actions pipeline (`.github/workflows/deploy.yml`) is triggered automatically on a push to the `master` branch **only when changes occur in `src/` or `Dockerfile`**, saving unnecessary build minutes.
+
+### Pipeline Stages
+
+**Continuous Integration (CI):**
+1. Checks out the code.
+2. Sets up the Node.js 20 environment.
+3. Installs dependencies, runs Format Checks, Linter (ESLint), and Unit Tests.
+
+**Continuous Deployment (CD):**
+1. Assumes the AWS IAM Role via GitHub OIDC.
+2. Authenticates with Amazon ECR.
+3. Builds, tags, and pushes the new Docker image to ECR.
+4. Downloads the active ECS Task Definition from AWS.
+5. Renders the new image URI into the Task Definition.
+6. Deploys the updated Task Definition to the ECS Service and waits for container stability.
+
+---
+
+## 🏃‍♂️ Running the Node.js Application Locally
+
+This is a Node.js application, and running it locally is straightforward:
+
+1. Navigate to the `src` directory:
+   ```bash
+   cd src
+   ```
+
+2. Install the project's dependencies:
+   ```bash
+   npm i
+   ```
+
+3. Execute tests:
+   ```bash
+   npm test
+   ```
+
+4. Start the HTTP server:
+   ```bash
+   npm start
+   ```
+
+Test it using the following command:
+
+```bash
 curl localhost:3000
 ```
-You should receive the following response:
+
+Expected response:
+
 ```json
 {"message":"Welcome warriors to Golden Owl!"}
 ```
 
-Are you ready to embark on this DevOps journey with us? 🚀 Best of luck with your assignment! 🌟
+---
+
+## 💻 How to Provision the Infrastructure
+
+If you wish to replicate this AWS environment:
+
+**Prerequisites:** AWS CLI configured, Terraform installed.
+
+1. Navigate to Terraform directory:
+   ```bash
+   cd terraform
+   ```
+
+2. Initialize and Apply:
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply -auto-approve
+   ```
+
+3. **Update GitHub Actions:**
+   After applying, copy the generated IAM OIDC Role ARN and update the `role-to-assume` field in `.github/workflows/deploy.yml`.
+
+4. **Clean Up (Important):**
+   To avoid unexpected AWS charges, destroy the infrastructure when done:
+   ```bash
+   terraform destroy -auto-approve
+   ```
+
+---
+
+Thank you for reviewing my submission! I am excited about the opportunity to bring my passion for DevOps, automation, and secure architecture to Golden Owl.
